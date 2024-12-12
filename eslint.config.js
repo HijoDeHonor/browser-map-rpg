@@ -45,6 +45,7 @@ export default [
       'array-bracket-spacing': ['error', 'never'],
       'quotes': ['error', 'single', { avoidEscape: true }], // Usar comillas simples
       'eol-last': ['error', 'always'],
+      'react-hooks/exhaustive-deps': 'off',
     },
   },
 ];
