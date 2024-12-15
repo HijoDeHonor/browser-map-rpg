@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FaLocationDot } from 'react-icons/fa6';
+import MiniMap from '../../components/miniMap/MiniMap';
 
 function Map ({ rawMapData }) {
   const [mapData, setMapData] = useState(rawMapData);
@@ -73,40 +74,24 @@ function Map ({ rawMapData }) {
 
   const handleCellClick = (row, col) => {
     const cell = mapData[row][col];
-    // Si la celda no es accesible, no permito el movimiento
-    if (!cell.accessible) {
+    if (!cell.accessible || (!isAdjacentCell(selectedCell, { row, col }) && !cell.visited)) {
       return;
     }
-  
-    const isAdjacentCell = (selectedCell, targetCell) => {
-      const rowDiff = Math.abs(selectedCell.row - targetCell.row);
-      const colDiff = Math.abs(selectedCell.col - targetCell.col);
-  
-      return rowDiff <= 1 && colDiff <= 1;
-    };
-  
-    if (isAdjacentCell(selectedCell, { row, col })) {
-      // Si la celda es adyacente, permito el movimiento
-      setSelectedCell({ row, col }); // Actualizo la celda seleccionada
-      setMapData((prevMap) => {
-        const updatedMap = [...prevMap]; // Creo una copia del mapa anterior
-        updatedMap[row][col] = {
-          ...updatedMap[row][col],
-          visited: true, // Marco la celda como visitada
-        };
-        return updatedMap; // Devuelvo el mapa actualizado
-      });
-      return;
-    }
-  
-    if (cell.visited) {
-      // Si la celda no es adyacente pero ya fue visitada, permito el movimiento
-      setSelectedCell({ row, col }); // Actualizo la celda seleccionada
-      return;
-    }
+    setSelectedCell({ row, col }); // Actualizo la celda seleccionada
+    setMapData((prevMap) => {
+      const updatedMap = [...prevMap]; // Creo una copia del mapa anterior
+      updatedMap[row][col] = {
+        ...updatedMap[row][col],
+        visited: true, // Marco la celda como visitada
+      };
+      return updatedMap; // Devuelvo el mapa actualizado
+    });
   };
-  
 
+  const isAdjacentCell = (selected, target) =>
+    Math.abs(selected.row - target.row) <= 1 &&
+    Math.abs(selected.col - target.col) <= 1;
+  
   const renderGrid = () => {
     // Declaro una constante para guardar el mapa que se ve en pantalla
     const grid = [];
@@ -157,13 +142,13 @@ function Map ({ rawMapData }) {
             // funcion para que al hacer click se mueva a la celda
             onClick={() => handleCellClick(row, col)}
             className={`
-              w-20 h-20 border-2 flex items-center justify-center cursor-pointer
+              w-20 h-20  flex items-center justify-center
               transition-all duration-300 relative
               ${isSelected ? // si es la celda seleccionada tendra un estilo
-    'border-blue-500 bg-blue-100 scale-105 z-10' 
-    : isAccessible // si no esta seleccionada verifica que sea una celda accesible para darle un estilo
-      ? 'border-gray-200 hover:bg-gray-50' // Estilo para celdas accesibles no seleccionadas
-      : 'bg-gray-300 border-gray-300 cursor-not-allowed' // Estilo para celdas no accesibles
+    'border-blue-500 border-4 bg-blue-100 scale-105 z-10' 
+    : isAccessible && isVisited || isAdjacentCell(selectedCell, { row, col }) // si no esta seleccionada verifica que sea una celda accesible para darle un estilo
+      ? 'border-gray-200 hover:bg-gray-50 cursor-pointer'  // Estilo para celdas accesibles no seleccionadas
+      : 'bg-gray-300 border-gray-300 cursor-default' // Estilo para celdas no accesibles
 }
             `}
             style={{
@@ -172,14 +157,14 @@ function Map ({ rawMapData }) {
             }}
             tabIndex="0" // Habilito la navegación con teclado
           >
-            {/* Contenido visual dentro de la celda */}
+          
             <div className="flex flex-col items-center justify-center space-y-1">
-              {isSelected && // destaca la celda seleccionada
+              {isSelected && 
                 <FaLocationDot
                   className={'text-xl  text-blue-500'}
                 />}
-              <span className="text-xs font-medium text-gray-600">
-                {`${row},${col}`} {/* Coordenadas de la celda */}
+              <span className="text-xs font-medium text-gray-600 cursor-default">
+                {`${row},${col}`}
               </span>
             </div>
           </div>
@@ -189,33 +174,44 @@ function Map ({ rawMapData }) {
       // Agrego la fila actual al grid principal
       grid.push(
         <div key={row} className="flex">
-          {currentRow} {/* Inserto las celdas de la fila */}
+          {currentRow}
         </div>
       );
     }
   
-    // Devuelvo el grid generado
     return grid;
   };
   
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+    <>
+      <div className="bg-gray-200 p-2 flex  justify-center">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
           The Great Array Map
-        </h2>
-        <div className="flex flex-col items-center space-y-4">
-          <div className="grid gap-1">{renderGrid()}</div>
-          <p className="text-sm text-gray-600 mt-4">
-            Use arrow keys or click on visited cells to navigate.
-          </p>
-          <div className="text-sm text-gray-500">
+            </h2>
+            <div className="flex flex-col items-center space-y-0">
+              <div className="grid gap-0">{renderGrid()}</div>
+              <p className="text-sm text-gray-600 mt-4">
+            Use arrow keys or click on adjacent cells or visited cells to navigate.
+              </p>
+              <div className="text-sm text-gray-500">
             Current Position: ({selectedCell.row}, {selectedCell.col})
+              </div>
+            </div>
           </div>
         </div>
+        <div className='flex-col justify-center items-baseline'>
+          <span className='text-black text-xl'>MiniMap</span>
+          <MiniMap
+            mapData={mapData}
+            handleMove={handleCellClick}
+            selectedCell={selectedCell}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
